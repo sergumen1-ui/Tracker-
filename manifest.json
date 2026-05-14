@@ -2,7 +2,7 @@
   "name": "Трекер питания",
   "short_name": "Трекер",
   "description": "Личный трекер питания и веса",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#1e1f22",
   "theme_color": "#1e1f22",
@@ -18,5 +18,6 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "scope": "./"
 }
