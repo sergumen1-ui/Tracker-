@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1e1f22">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Трекер">
+<title>🥗 Трекер питания</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: #1e1f22; color: #dbdee1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; min-height: 100vh; }
+  input, button { font-family: inherit; font-size: 13px; }
+  input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  input:focus { outline: none; border-color: #5865f2 !important; }
+  button:active { opacity: .8; }
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-thumb { background: #3a3d45; border-radius: 2px; }
+
+  /* Layout */
+  .surface  { background: #2b2d31; border: 1px solid #3a3d45; border-radius: 10px; }
+  .bg-dark   { background: #1e1f22; }
+  .label    { font-size: 10px; font-weight: 600; color: #80848e; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  .inp      { width: 100%; padding: 9px 12px; border-radius: 7px; border: 1px solid #3a3d45; background: #1e1f22; color: #dbdee1; }
+  .btn      { width: 100%; padding: 9px; border-radius: 7px; border: none; color: #fff; font-weight: 700; cursor: pointer; }
+  .btn-blue  { background: #5865f2; }
+  .btn-green { background: #3ba55c; }
+  .btn-yellow{ background: #faa61a; }
+  .page     { padding: 14px 14px 100px; max-width: 560px; margin: 0 auto; }
+  .card     { background: #2b2d31; border: 1px solid #3a3d45; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .row      { display: flex; justify-content: space-between; align-items: center; }
+  .grid3    { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .grid4    { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; }
+  .grid2    { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat     { text-align: center; }
+  .stat-label { font-size: 10px; font-weight: 600; color: #80848e; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
+  .stat-value { font-size: 18px; font-weight: 700; line-height: 1; }
+  .stat-sub   { font-size: 10px; color: #80848e; margin-top: 2px; }
+  .divider  { height: 1px; background: #3a3d45; margin: 10px 0; }
+
+  /* Header */
+  #header { background: #2b2d31; border-bottom: 1px solid #3a3d45; padding: 12px 16px; position: sticky; top: 0; z-index: 50; }
+
+  /* Tabs */
+  #tabs { display: flex; background: #2b2d31; border-bottom: 1px solid #3a3d45; }
+  .tab-btn { flex: 1; padding: 11px 4px; border: none; background: transparent; cursor: pointer; color: #80848e; border-bottom: 2px solid transparent; font-size: 13px; font-weight: 400; }
+  .tab-btn.active { color: #dbdee1; border-bottom-color: #5865f2; font-weight: 700; }
+
+  /* Meal option */
+  .meal-opt { padding: 9px 12px; margin-bottom: 6px; border-radius: 8px; border: 1px solid #3a3d45; background: #1e1f22; cursor: pointer; display: flex; justify-content: space-between; align-items: flex-start; transition: all .15s; }
+  .meal-opt.selected { border-color: #5865f2; background: rgba(88,101,242,.12); }
+  .meal-opt.locked   { opacity: .35; cursor: default; }
+  .meal-opt-name { font-size: 13px; font-weight: 500; line-height: 18px; }
+  .meal-opt-note { font-size: 11px; color: #80848e; margin-top: 2px; }
+  .meal-opt-kcal { font-size: 13px; font-weight: 700; color: #80848e; margin-left: 10px; white-space: nowrap; }
+  .meal-opt.selected .meal-opt-kcal { color: #5865f2; }
+
+  /* History item */
+  .hist-item { border: 1px solid #3a3d45; border-radius: 10px; background: #2b2d31; margin-bottom: 8px; overflow: hidden; }
+  .hist-item.open { border-color: #5865f2; }
+  .hist-head { padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+  .hist-edit { padding: 10px 14px; border-top: 1px solid #3a3d45; background: #1e1f22; }
+
+  /* Progress bar */
+  .prog-wrap { position: relative; height: 8px; background: #1e1f22; border-radius: 4px; }
+  .prog-fill  { height: 100%; border-radius: 4px; transition: width .5s; }
+  .prog-dot   { position: absolute; top: 50%; transform: translateY(-50%); width: 12px; height: 12px; background: #fff; border: 2px solid #5865f2; border-radius: 50%; }
+  .prog-mark  { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #faa61a; }
+
+  /* Lock badge */
+  .lock-badge { font-size: 11px; font-weight: 600; color: #3ba55c; }
+
+  /* Toast */
+  #toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #5865f2; color: #fff; padding: 10px 22px; border-radius: 20px; font-size: 13px; font-weight: 700; z-index: 999; box-shadow: 0 4px 20px rgba(0,0,0,.4); white-space: nowrap; display: none; }
+
+  /* Password screen */
+  #pw-screen { position: fixed; inset: 0; background: #1e1f22; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; padding: 24px; }
+  #pw-screen h1 { font-size: 32px; margin-bottom: 8px; }
+  #pw-screen p  { color: #80848e; margin-bottom: 32px; font-size: 14px; }
+
+  /* Extra meal */
+  .extra-item { padding: 10px 14px; margin-bottom: 8px; border-radius: 10px; border: 1px solid #3a3d45; background: #2b2d31; display: flex; justify-content: space-between; align-items: center; }
+  .del-btn { padding: 4px 8px; border-radius: 6px; border: none; background: rgba(237,66,69,.15); color: #ed4245; font-size: 12px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<!-- PASSWORD SCREEN -->
+<div id="pw-screen">
+  <h1>🥗</h1>
+  <p>Трекер питания · Сергей</p>
+  <div style="width:100%;max-width:280px">
+    <input id="pw-input" type="password" placeholder="Пароль" class="inp" style="margin-bottom:12px;text-align:center;font-size:16px" onkeydown="if(event.key==='Enter')checkPw()">
+    <button class="btn btn-blue" onclick="checkPw()">Войти</button>
+    <div id="pw-error" style="color:#ed4245;font-size:12px;text-align:center;margin-top:8px;display:none">Неверный пароль</div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none">
+
+  <!-- HEADER -->
+  <div id="header">
+    <div class="row" style="margin-bottom:10px">
+      <div>
+        <div class="label" id="h-day">Сергей · День —</div>
+        <div style="font-size:18px;font-weight:800;margin-top:2px">🥗 Трекер питания</div>
+        <div style="display:flex;gap:12px;margin-top:4px;font-size:11px;color:#80848e" id="h-stats"></div>
+      </div>
+      <div style="text-align:right">
+        <div class="label">~ Вес</div>
+        <div style="font-size:26px;font-weight:800;color:#3ba55c;line-height:1.1" id="h-weight">—</div>
+        <div style="font-size:11px;color:#faa61a" id="h-lost"></div>
+      </div>
+    </div>
+    <div>
+      <div class="row" style="font-size:10px;color:#80848e;margin-bottom:4px">
+        <span>115 кг</span><span id="pb-label" style="color:#faa61a">90 кг</span><span>80 кг</span>
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-fill" id="pb-fill" style="width:0%;background:#5865f2"></div>
+        <div class="prog-mark" id="pb-mark"></div>
+        <div class="prog-dot" id="pb-dot" style="left:0"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div id="tabs">
+    <button class="tab-btn active" onclick="switchTab('today')">📅 День</button>
+    <button class="tab-btn" onclick="switchTab('history')">📋 История</button>
+    <button class="tab-btn" onclick="switchTab('weight')">⚖️ Вес</button>
+  </div>
+
+  <!-- TODAY -->
+  <div id="tab-today" class="page">
+    <!-- Summary -->
+    <div class="card" id="summary-card"></div>
+    <!-- Meals -->
+    <div id="meal-breakfast"></div>
+    <div id="meal-lunch"></div>
+    <div id="meal-snack"></div>
+    <!-- Tuna -->
+    <div id="tuna-card" class="card" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="toggleTuna()">
+      <span id="tuna-label">🐟 Тунец в воде 145г</span>
+      <span style="font-weight:700;color:#80848e">+100 кк</span>
+    </div>
+    <!-- Extras -->
+    <div id="extras-list"></div>
+    <!-- Add meal -->
+    <div class="card">
+      <div class="label">➕ Добавить приём пищи</div>
+      <input id="extra-name" class="inp" placeholder="Название" style="margin-bottom:6px">
+      <input id="extra-kcal" class="inp" type="number" placeholder="ккал" style="margin-bottom:8px">
+      <button class="btn btn-green" onclick="addExtra()">+ Добавить</button>
+    </div>
+    <!-- Weight -->
+    <div class="card">
+      <div class="label">⚖️ Вес (кг)</div>
+      <div id="weight-display" style="font-size:13px;font-weight:600;color:#faa61a;margin-bottom:8px;display:none"></div>
+      <input id="weight-input" class="inp" type="number" step="0.1" placeholder="кг" style="margin-bottom:8px">
+      <button class="btn btn-yellow" onclick="saveWeight()">💾 Сохранить</button>
+    </div>
+    <!-- Steps -->
+    <div class="card">
+      <div class="label">👟 Шаги</div>
+      <div id="steps-display" style="font-size:13px;font-weight:600;color:#5865f2;margin-bottom:8px;display:none"></div>
+      <input id="steps-input" class="inp" type="number" placeholder="шаги" style="margin-bottom:8px">
+      <button class="btn btn-blue" onclick="saveSteps()">💾 Сохранить</button>
+    </div>
+    <!-- Backup -->
+    <div class="card">
+      <div class="label">💾 Резервная копия</div>
+      <div style="font-size:11px;color:#80848e;margin-bottom:8px">Сохрани файл и загружай при открытии нового чата</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-green" style="flex:1" onclick="exportData()">💾 Сохранить</button>
+        <label class="btn btn-blue" style="flex:1;text-align:center;cursor:pointer">
+          📂 Загрузить
+          <input type="file" accept=".json" style="display:none" onchange="importData(this)">
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="tab-history" class="page" style="display:none">
+    <div class="card" id="hist-summary"></div>
+    <div id="hist-list"></div>
+  </div>
+
+  <!-- WEIGHT -->
+  <div id="tab-weight" class="page" style="display:none">
+    <div class="grid2" style="margin-bottom:12px" id="weight-cards"></div>
+    <div id="goal-cards"></div>
+    <div class="card" id="forecast-card"></div>
+    <div class="label" style="margin-bottom:8px">История взвешиваний</div>
+    <div id="weight-history"></div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// КОНСТАНТЫ
+// ═══════════════════════════════════════════════════
+const PASSWORD    = "sergey2026";
+const START_DATE  = "2026-04-27";
+const START_W     = 115;
+const GOAL_1      = 90;
+const GOAL_2      = 80;
+const GOAL_KCAL   = 1400;
+const KCAL_PER_KG = 7700;
+const STEP_M      = 0.757;
+const BMR_A       = 0.0005175;
+const BMR_K       = 0.9369;
+const LS_KEY      = "sergey_pwa_v1";
+
+const PLAN = {
+  breakfast: { label:"Завтрак", icon:"🌅", options:[
+    {id:"b1", name:"Заморожённые овощи 250г + Чеддер 30г",    note:"Аэрофритюр + микроволновка 1 мин", kcal:220},
+    {id:"b2", name:"Заморожённая кукуруза 100г + Чеддер 40г", note:"Аэрофритюр + микроволновка 1 мин", kcal:245},
+  ]},
+  lunch: { label:"Обед", icon:"☀️", options:[
+    {id:"l1", name:"Паста с беконом",        note:"Конкилье 125г + соус 125г + бекон 50г + пармезан 30г", kcal:710},
+    {id:"l2", name:"Рис с курицей и курмой", note:"Рис BIB 125г + соус korma 100г + куриная грудка 95г",  kcal:727},
+  ]},
+  snack: { label:"Ужин / Снек", icon:"🌙", options:[
+    {id:"s1", name:"Греческий йогурт 200г + грецкие орехи 30г", note:"Обычный день",  kcal:454},
+    {id:"s2", name:"Солёный попкорн 100г",                       note:"День попкорна", kcal:493},
+  ]},
+};
+
+const GF_STEPS = {
+  "2026-04-27":9647,  "2026-04-28":13154, "2026-04-29":16486,
+  "2026-04-30":9165,  "2026-05-01":9651,  "2026-05-02":9978,
+  "2026-05-03":11149, "2026-05-04":13637, "2026-05-05":13748,
+  "2026-05-06":17790,
+};
+
+const PRESET_FOOD = {
+  "2026-05-07": {
+    breakfast:{type:"plan",id:"b1"},
+    lunch:{type:"custom",name:"2 фаршированных перца + тунец",kcal:550},
+    snack:{type:"plan",id:"s2"},
+  },
+};
+
+// ═══════════════════════════════════════════════════
+// УТИЛИТЫ
+// ═══════════════════════════════════════════════════
+function todayStr()   { return new Date().toISOString().slice(0,10); }
+function fmtDate(k)   { const [y,m,d]=k.split("-"); return `${d}.${m}.${y.slice(2)}`; }
+function dayN(k)      { return Math.floor((new Date(k)-new Date(START_DATE))/86400000)+1; }
+function toKm(s)      { return s>0 ? +(s*STEP_M/1000).toFixed(2) : 0; }
+function bmr(w)       { return 10*w+6.25*183-5*25+5; }
+function walkKcal(s,w){ return s>0 ? Math.round(BMR_A*w*s+BMR_K*bmr(w)-bmr(w)) : 0; }
+function deficit(s,w,e){ return s>0 ? Math.round(bmr(w)-(e||GOAL_KCAL)+walkKcal(s,w)) : 0; }
+
+function getMealKcal(meal) {
+  if (!meal) return 0;
+  if (meal.type==="plan") {
+    for (const sec of Object.values(PLAN)) {
+      const o = sec.options.find(o=>o.id===meal.id);
+      if (o) return o.kcal;
+    }
+  }
+  return meal.kcal||0;
+}
+
+function getDayEaten(d) {
+  if (!d) return 0;
+  let t = getMealKcal(d.breakfast)+getMealKcal(d.lunch)+getMealKcal(d.snack);
+  (d.extras||[]).forEach(e=>t+=e.kcal||0);
+  if (d.tuna) t+=100;
+  return t;
+}
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let allData = {};
+let today   = todayStr();
+let openHistDay = null;
+
+function loadData() {
+  try { const s=localStorage.getItem(LS_KEY); allData=s?JSON.parse(s):{}; } catch { allData={}; }
+  // Seed GF
+  Object.entries(GF_STEPS).forEach(([k,steps])=>{
+    if (!allData[k]) allData[k]={steps};
+    else if (!allData[k].steps) allData[k].steps=steps;
+  });
+  // Seed preset food (only if slot empty)
+  Object.entries(PRESET_FOOD).forEach(([k,food])=>{
+    if (!allData[k]) allData[k]={...food};
+    else {
+      if (!allData[k].breakfast && food.breakfast) allData[k].breakfast=food.breakfast;
+      if (!allData[k].lunch     && food.lunch)     allData[k].lunch=food.lunch;
+      if (!allData[k].snack     && food.snack)     allData[k].snack=food.snack;
+    }
+  });
+  if (!allData[today]) allData[today]={};
+}
+
+function save() {
+  try { localStorage.setItem(LS_KEY,JSON.stringify(allData)); } catch {}
+}
+
+// ═══════════════════════════════════════════════════
+// CALCULATIONS
+// ═══════════════════════════════════════════════════
+function calcStats() {
+  const keys   = Object.keys(allData).sort();
+  let runW     = START_W, totalDef = 0;
+  const stats  = {};
+  for (const k of keys) {
+    const d  = allData[k]||{};
+    const e  = getDayEaten(d);
+    const wk = walkKcal(d.steps||0, runW);
+    const df = d.steps>0 ? Math.round(bmr(runW)-(e||GOAL_KCAL)+wk) : 0;
+    totalDef += df;
+    runW = Math.max(+(START_W-totalDef/KCAL_PER_KG).toFixed(2),60);
+    stats[k]={eaten:e,walk:wk,deficit:df,theoW:runW};
+  }
+  const daysWithSteps = keys.filter(k=>(allData[k]?.steps||0)>0);
+  const avgSteps = daysWithSteps.length ? Math.round(daysWithSteps.reduce((s,k)=>s+(allData[k].steps||0),0)/daysWithSteps.length) : 0;
+  const avgDef   = daysWithSteps.length ? Math.round(totalDef/daysWithSteps.length) : 0;
+  const realW    = (()=>{ for(const k of [...keys].reverse()) if(allData[k]?.weight) return{w:allData[k].weight,date:k}; return null; })();
+  return { keys, stats, theoW:runW, theoLost:+(START_W-runW).toFixed(2), totalDef, avgSteps, avgDef, realW };
+}
+
+// ═══════════════════════════════════════════════════
+// PASSWORD
+// ═══════════════════════════════════════════════════
+function checkPw() {
+  const val = document.getElementById("pw-input").value;
+  if (val === PASSWORD) {
+    document.getElementById("pw-screen").style.display="none";
+    document.getElementById("app").style.display="block";
+    init();
+  } else {
+    document.getElementById("pw-error").style.display="block";
+    document.getElementById("pw-input").value="";
+  }
+}
+document.getElementById("pw-input").addEventListener("keydown", e=>{ if(e.key==="Enter") checkPw(); });
+
+// ═══════════════════════════════════════════════════
+// INIT & RENDER
+// ═══════════════════════════════════════════════════
+function init() {
+  today = todayStr();
+  loadData();
+  renderAll();
+  // Auto-refresh at midnight
+  const now    = new Date();
+  const msLeft = new Date(now.getFullYear(),now.getMonth(),now.getDate()+1)-now;
+  setTimeout(()=>{ today=todayStr(); if(!allData[today]) allData[today]={}; save(); renderAll(); }, msLeft);
+}
+
+function renderAll() {
+  const cs = calcStats();
+  renderHeader(cs);
+  renderSummary(cs);
+  renderMeals();
+  renderTuna();
+  renderExtras();
+  renderHistory(cs);
+  renderWeight(cs);
+}
+
+// ── HEADER ──────────────────────────────────────────
+function renderHeader(cs) {
+  document.getElementById("h-day").textContent = `Сергей · День ${dayN(today)}`;
+  document.getElementById("h-weight").textContent = cs.theoW.toFixed(1);
+  document.getElementById("h-lost").textContent = `−${cs.theoLost} кг`;
+  document.getElementById("h-stats").innerHTML =
+    `<span>👟 avg ${cs.avgSteps.toLocaleString()}</span><span>🗺️ avg ${toKm(cs.avgSteps)} км</span><span>📉 avg +${cs.avgDef} кк</span>`;
+
+  const prog80 = Math.min(100,Math.max(0,((START_W-cs.theoW)/(START_W-GOAL_2))*100));
+  const prog90 = Math.min(100,Math.max(0,((START_W-cs.theoW)/(START_W-GOAL_1))*100));
+  const mark90pos = ((START_W-GOAL_1)/(START_W-GOAL_2))*100;
+
+  document.getElementById("pb-fill").style.width = prog80+"%";
+  document.getElementById("pb-dot").style.left   = `calc(${prog80}% - 6px)`;
+  document.getElementById("pb-mark").style.left  = mark90pos+"%";
+  document.getElementById("pb-label").textContent = `90 кг · ${prog90.toFixed(0)}%`;
+}
+
+// ── SUMMARY ─────────────────────────────────────────
+function renderSummary(cs) {
+  const d    = allData[today]||{};
+  const e    = getDayEaten(d);
+  const curW = cs.realW ? cs.realW.w : cs.theoW;
+  const wk   = walkKcal(d.steps||0, curW);
+  const df   = deficit(d.steps||0, curW, e);
+  const rem  = GOAL_KCAL-e;
+  const km   = toKm(d.steps||0);
+
+  const col = (v,pos,neg,warn)=> v>0?(pos||"#3ba55c"):v<0?(neg||"#ed4245"):(warn||"#80848e");
+
+  document.getElementById("summary-card").innerHTML = `
+    <div class="grid3" style="margin-bottom:12px">
+      <div class="stat"><div class="stat-label">Съедено</div><div class="stat-value" style="color:${e>GOAL_KCAL?"#ed4245":"#3ba55c"}">${e} кк</div></div>
+      <div class="stat"><div class="stat-label">Цель</div><div class="stat-value">${GOAL_KCAL} кк</div></div>
+      <div class="stat"><div class="stat-label">Остаток</div><div class="stat-value" style="color:${rem<0?"#ed4245":rem<200?"#faa61a":"#3ba55c"}">${rem<0?rem:"+"+rem} кк</div></div>
+    </div>
+    <div style="height:4px;background:#1e1f22;border-radius:2px;margin-bottom:12px">
+      <div style="height:100%;width:${Math.min(100,e/GOAL_KCAL*100)}%;background:${e>GOAL_KCAL?"#ed4245":"#3ba55c"};border-radius:2px;transition:width .4s"></div>
+    </div>
+    <div class="grid4">
+      <div class="stat"><div class="stat-label">Шаги</div><div class="stat-value" style="font-size:14px;color:${d.steps?"#dbdee1":"#80848e"}">${(d.steps||0).toLocaleString()}</div></div>
+      <div class="stat"><div class="stat-label">Км</div><div class="stat-value" style="font-size:14px;color:${km?"#dbdee1":"#80848e"}">${km||"—"}</div></div>
+      <div class="stat"><div class="stat-label">Ходьба</div><div class="stat-value" style="font-size:14px;color:${wk>0?"#faa61a":"#80848e"}">${wk>0?"+"+wk:"—"}</div><div class="stat-sub">кк</div></div>
+      <div class="stat"><div class="stat-label">Дефицит</div><div class="stat-value" style="font-size:14px;color:${df>0?"#3ba55c":df<0?"#ed4245":"#80848e"}">${df>0?"+"+df:df||"—"}</div><div class="stat-sub">кк</div></div>
+    </div>
+  `;
+}
+
+// ── MEALS ───────────────────────────────────────────
+function renderMeals() {
+  ["breakfast","lunch","snack"].forEach(slot => renderMealSlot(slot));
+}
+
+function renderMealSlot(slot) {
+  const meta    = PLAN[slot];
+  const d       = allData[today]||{};
+  const current = d[slot];
+  const locked  = !!current;
+  const el      = document.getElementById("meal-"+slot);
+
+  let optsHTML = meta.options.map((opt,i)=>{
+    const isSel = current?.type==="plan" && current?.id===opt.id;
+    const cls   = "meal-opt"+(isSel?" selected":(!isSel&&locked?" locked":""));
+    return `<div class="${cls}" onclick="pickMeal('${slot}','${opt.id}')">
+      <div style="flex:1">
+        <div class="meal-opt-name"><span style="color:#80848e;margin-right:5px">${i+1}.</span>${opt.name}</div>
+        <div class="meal-opt-note">${opt.note}</div>
+      </div>
+      <span class="meal-opt-kcal">${opt.kcal} кк</span>
+    </div>`;
+  }).join("");
+
+  let customHTML = "";
+  if (!locked) {
+    customHTML = `
+      <div style="padding:9px 12px;border-radius:8px;border:1px solid #3a3d45;background:#1e1f22">
+        <div style="font-size:11px;color:#80848e;margin-bottom:8px">3. Своё блюдо</div>
+        <input id="cn-${slot}" class="inp" placeholder="Что ел?" style="margin-bottom:6px">
+        <input id="ck-${slot}" class="inp" type="number" placeholder="ккал" style="margin-bottom:8px">
+        <button class="btn btn-blue" onclick="saveCustomMeal('${slot}')">💾 Сохранить</button>
+      </div>`;
+  } else if (current?.type==="custom") {
+    customHTML = `<div style="padding:9px 12px;border-radius:8px;border:1px solid #3a3d45;background:#1e1f22;opacity:.35;font-size:11px;color:#80848e">3. Своё блюдо</div>`;
+  } else {
+    customHTML = `<div style="padding:9px 12px;border-radius:8px;border:1px solid #3a3d45;background:#1e1f22;opacity:.35;font-size:11px;color:#80848e">3. Своё блюдо</div>`;
+  }
+
+  el.innerHTML = `
+    <div style="background:#2b2d31;border:1px solid #3a3d45;border-radius:10px;margin-bottom:10px;overflow:hidden">
+      <div style="padding:10px 14px;background:#1e1f22;border-bottom:1px solid #3a3d45;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:14px;font-weight:700">${meta.icon} ${meta.label}</span>
+        ${locked?`<span class="lock-badge">✓ ${getMealKcal(current)} кк${current?.type==="custom"?" · "+current.name:""}</span>`:""}
+      </div>
+      <div style="padding:8px 10px">
+        ${optsHTML}
+        ${customHTML}
+      </div>
+    </div>`;
+}
+
+function pickMeal(slot, id) {
+  const d = allData[today]||{};
+  if (d[slot]) return;
+  allData[today] = {...d, [slot]:{type:"plan",id}};
+  save(); renderAll(); toast("✅ Записано");
+}
+
+function saveCustomMeal(slot) {
+  const d    = allData[today]||{};
+  if (d[slot]) return;
+  const name = document.getElementById("cn-"+slot)?.value?.trim();
+  const kcal = parseInt(document.getElementById("ck-"+slot)?.value);
+  if (!name||!kcal) { toast("Введи название и ккал"); return; }
+  allData[today] = {...d, [slot]:{type:"custom",name,kcal}};
+  save(); renderAll(); toast("✅ Записано");
+}
+
+// ── TUNA ────────────────────────────────────────────
+function renderTuna() {
+  const d = allData[today]||{};
+  const el = document.getElementById("tuna-card");
+  if (d.tuna) {
+    el.style.borderColor="#3ba55c";
+    el.style.background="rgba(59,165,92,.1)";
+    el.querySelector("#tuna-label").style.color="#3ba55c";
+    el.querySelector("#tuna-label").textContent="🐟 Тунец в воде 145г — добавлен ✓";
+  } else {
+    el.style.borderColor="#3a3d45";
+    el.style.background="#2b2d31";
+    el.querySelector("#tuna-label").style.color="#dbdee1";
+    el.querySelector("#tuna-label").textContent="🐟 Тунец в воде 145г";
+  }
+}
+function toggleTuna() {
+  const d = allData[today]||{};
+  if (d.tuna) return;
+  allData[today]={...d,tuna:true};
+  save(); renderAll();
+}
+
+// ── EXTRAS ──────────────────────────────────────────
+function renderExtras() {
+  const d = allData[today]||{};
+  const el = document.getElementById("extras-list");
+  el.innerHTML = (d.extras||[]).map((e,i)=>`
+    <div class="extra-item">
+      <div>
+        <div style="font-weight:500">${e.name}</div>
+        <div style="font-size:11px;color:#80848e;margin-top:2px">доп. приём</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-weight:700;color:#3ba55c">${e.kcal} кк</span>
+        <button class="del-btn" onclick="removeExtra(${i})">✕</button>
+      </div>
+    </div>`).join("");
+}
+function addExtra() {
+  const name = document.getElementById("extra-name").value.trim();
+  const kcal = parseInt(document.getElementById("extra-kcal").value);
+  if (!name||!kcal) { toast("Введи название и ккал"); return; }
+  const d = allData[today]||{};
+  allData[today]={...d, extras:[...(d.extras||[]),{name,kcal}]};
+  document.getElementById("extra-name").value="";
+  document.getElementById("extra-kcal").value="";
+  save(); renderAll(); toast("✅ Добавлено");
+}
+function removeExtra(i) {
+  const d = allData[today]||{};
+  allData[today]={...d, extras:(d.extras||[]).filter((_,j)=>j!==i)};
+  save(); renderAll();
+}
+
+// ── WEIGHT & STEPS ──────────────────────────────────
+function saveWeight() {
+  const w = parseFloat(document.getElementById("weight-input").value);
+  if (!w||w<50||w>250) { toast("Некорректный вес"); return; }
+  allData[today]={...allData[today]||{}, weight:w};
+  document.getElementById("weight-input").value="";
+  save(); renderAll(); toast(`⚖️ ${w} кг сохранено`);
+}
+function saveSteps() {
+  const s = parseInt(document.getElementById("steps-input").value);
+  if (!s||s<0) { toast("Некорректно"); return; }
+  allData[today]={...allData[today]||{}, steps:s};
+  document.getElementById("steps-input").value="";
+  save(); renderAll(); toast(`👟 ${s.toLocaleString()} · ${toKm(s)} км`);
+}
+
+function updateWeightDisplay() {
+  const d = allData[today]||{};
+  const wd = document.getElementById("weight-display");
+  if (d.weight) { wd.style.display="block"; wd.textContent=d.weight+" кг"; }
+  else wd.style.display="none";
+  const sd = document.getElementById("steps-display");
+  if (d.steps>0) { sd.style.display="block"; sd.textContent=`${d.steps.toLocaleString()} шагов · ${toKm(d.steps)} км`; }
+  else sd.style.display="none";
+}
+
+// ── HISTORY ─────────────────────────────────────────
+function renderHistory(cs) {
+  const { keys, stats } = cs;
+  const totDef = Math.round(cs.totalDef);
+
+  document.getElementById("hist-summary").innerHTML = `
+    <div class="grid4">
+      <div class="stat"><div class="stat-label">Дней</div><div class="stat-value">${keys.length}</div></div>
+      <div class="stat"><div class="stat-label">Дефицит</div><div class="stat-value" style="font-size:14px;color:#faa61a">${totDef.toLocaleString()}</div><div class="stat-sub">кк</div></div>
+      <div class="stat"><div class="stat-label">~ Кг</div><div class="stat-value" style="color:#3ba55c">${cs.theoLost.toFixed(1)}</div></div>
+      <div class="stat"><div class="stat-label">avg км</div><div class="stat-value" style="font-size:14px">${toKm(cs.avgSteps)}</div></div>
+    </div>`;
+
+  const list = [...keys].reverse().slice(0,30);
+  document.getElementById("hist-list").innerHTML = list.map(k=>{
+    const d   = allData[k]||{};
+    const st  = stats[k]||{};
+    const km_ = toKm(d.steps||0);
+    const meals = ["breakfast","lunch","snack"].filter(s=>d[s]).length;
+    const isOpen = openHistDay===k;
+
+    const defColor = st.deficit>0?"#3ba55c":st.deficit<0?"#ed4245":"#80848e";
+    const defVal   = st.deficit>0?"+"+st.deficit:st.deficit||"—";
+    const wVal     = d.weight?d.weight+"⚖":"~"+(st.theoW?.toFixed(1)||"—");
+    const wColor   = d.weight?"#faa61a":"#80848e";
+
+    return `<div class="hist-item${isOpen?" open":""}">
+      <div class="hist-head" onclick="toggleHistDay('${k}')">
+        <div>
+          <div style="font-size:13px;font-weight:700">День ${dayN(k)} · ${fmtDate(k)}${k===today?" · сегодня":""}${GF_STEPS[k]?" 📊":""}</div>
+          <div style="font-size:11px;color:#80848e;margin-top:2px">${meals>0?meals+"/3 приёмов":"еда не записана"}${d.steps>0?" · 👟"+d.steps.toLocaleString()+" · "+km_+"км":""}</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <div style="text-align:center;min-width:36px">
+            <div style="font-size:9px;font-weight:600;color:#80848e;text-transform:uppercase">Еда</div>
+            <div style="font-size:13px;font-weight:700;color:${st.eaten>0?"#dbdee1":"#80848e"}">${st.eaten||"—"}</div>
+          </div>
+          <div style="text-align:center;min-width:42px">
+            <div style="font-size:9px;font-weight:600;color:#80848e;text-transform:uppercase">Дефицит</div>
+            <div style="font-size:13px;font-weight:700;color:${defColor}">${defVal}</div>
+          </div>
+          <div style="text-align:center;min-width:36px">
+            <div style="font-size:9px;font-weight:600;color:#80848e;text-transform:uppercase">Вес</div>
+            <div style="font-size:13px;font-weight:700;color:${wColor}">${wVal}</div>
+          </div>
+          <span style="color:#80848e;font-size:11px">${isOpen?"▲":"▼"}</span>
+        </div>
+      </div>
+      ${isOpen?`<div class="hist-edit">
+        <div style="font-size:10px;font-weight:600;color:#80848e;text-transform:uppercase;margin-bottom:8px">Изменить шаги</div>
+        <div style="display:flex;gap:8px;margin-bottom:6px">
+          <input id="hs-${k}" class="inp" type="number" value="${d.steps||""}" placeholder="шаги" style="flex:1">
+          <button onclick="saveHistSteps('${k}')" style="padding:9px 16px;border-radius:7px;border:none;background:#5865f2;color:#fff;font-size:13px;font-weight:700;cursor:pointer">✓</button>
+        </div>
+        <div style="font-size:11px;color:#80848e">${km_} км · ходьба +${st.walk||0} кк · дефицит ${defVal} кк</div>
+      </div>`:""}
+    </div>`;
+  }).join("");
+}
+
+function toggleHistDay(k) {
+  openHistDay = openHistDay===k ? null : k;
+  renderAll();
+}
+
+function saveHistSteps(k) {
+  const el = document.getElementById("hs-"+k);
+  const s  = parseInt(el?.value);
+  if (!s||s<0) { toast("Некорректно"); return; }
+  allData[k]={...allData[k]||{}, steps:s};
+  save(); renderAll(); toast(`👟 ${s.toLocaleString()} шагов`);
+}
+
+// ── WEIGHT TAB ──────────────────────────────────────
+function renderWeight(cs) {
+  const { theoW, theoLost, realW } = cs;
+  const prog90 = Math.min(100,Math.max(0,((START_W-theoW)/(START_W-GOAL_1))*100));
+  const prog80 = Math.min(100,Math.max(0,((START_W-theoW)/(START_W-GOAL_2))*100));
+
+  document.getElementById("weight-cards").innerHTML = `
+    <div class="card" style="text-align:center;margin-bottom:0">
+      <div class="label">~ По дефициту</div>
+      <div style="font-size:40px;font-weight:800;color:#3ba55c;line-height:1">${theoW.toFixed(1)}</div>
+      <div style="font-size:11px;color:#80848e;margin-top:4px">кг · −${theoLost} от старта</div>
+    </div>
+    <div class="card" style="text-align:center;margin-bottom:0">
+      <div class="label">⚖️ Реальный</div>
+      <div style="font-size:40px;font-weight:800;color:${realW?"#faa61a":"#80848e"};line-height:1">${realW?realW.w:"—"}</div>
+      <div style="font-size:11px;color:#80848e;margin-top:4px">${realW?fmtDate(realW.date):"весов нет"}</div>
+    </div>`;
+
+  document.getElementById("goal-cards").innerHTML = [
+    {g:GOAL_1,pct:prog90,label:"Цель 1: 90 кг"},
+    {g:GOAL_2,pct:prog80,label:"Цель 2: 80 кг"},
+  ].map(({g,pct,label})=>`
+    <div class="card">
+      <div class="row" style="margin-bottom:8px">
+        <span style="font-weight:600">${label}</span>
+        <span style="font-size:11px;color:${pct>=100?"#3ba55c":"#80848e"}">${pct>=100?"✅ Достигнута!":"ещё ~"+Math.max(0,theoW-g).toFixed(1)+" кг"}</span>
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-fill" style="width:${pct}%;background:#5865f2"></div>
+        <div class="prog-dot" style="left:calc(${pct}% - 6px)"></div>
+      </div>
+      <div style="font-size:10px;color:#80848e;margin-top:4px">${pct.toFixed(1)}%</div>
+    </div>`).join("");
+
+  // Forecast
+  const rows = [{label:"90 кг",target:GOAL_1},{label:"80 кг",target:GOAL_2}].map(({label,target})=>{
+    const kgLeft   = Math.max(0,theoW-target);
+    const daysLeft = cs.avgDef>0 ? Math.ceil(kgLeft*KCAL_PER_KG/cs.avgDef) : null;
+    const date_    = daysLeft ? new Date(Date.now()+daysLeft*86400000).toLocaleDateString("ru-RU",{day:"numeric",month:"long"}) : "—";
+    return `<div class="row" style="padding:7px 0;border-bottom:1px solid #3a3d45">
+      <span style="font-weight:600">${label}</span>
+      <span style="color:#80848e">${daysLeft?"~"+daysLeft+" дней":"—"}</span>
+      <span style="font-weight:600;color:#3ba55c">${date_}</span>
+    </div>`;
+  }).join("");
+  document.getElementById("forecast-card").innerHTML = `<div class="label">📅 Прогноз при текущем темпе</div>${rows}`;
+
+  // Weight history
+  const keys = Object.keys(allData).sort().reverse().filter(k=>allData[k]?.weight).slice(0,12);
+  document.getElementById("weight-history").innerHTML = keys.length
+    ? keys.map(k=>`<div class="row" style="padding:8px 0;border-bottom:1px solid #3a3d45;font-size:13px">
+        <span style="color:#80848e">День ${dayN(k)} · ${fmtDate(k)}</span>
+        <span style="font-weight:700;color:#faa61a">${allData[k].weight} кг</span>
+        <span style="font-weight:700;color:#3ba55c">−${(START_W-allData[k].weight).toFixed(1)} кг</span>
+      </div>`).join("")
+    : `<div style="color:#80848e;text-align:center;padding:24px">Купи весы → добавь первый результат 🏋️</div>`;
+
+  // Update today's weight/steps display
+  updateWeightDisplay();
+}
+
+// ── TABS ────────────────────────────────────────────
+function switchTab(name) {
+  ["today","history","weight"].forEach(t=>{
+    document.getElementById("tab-"+t).style.display = t===name?"block":"none";
+  });
+  document.querySelectorAll(".tab-btn").forEach((b,i)=>{
+    b.classList.toggle("active",["today","history","weight"][i]===name);
+  });
+}
+
+// ── BACKUP ──────────────────────────────────────────
+function exportData() {
+  const blob = new Blob([JSON.stringify(allData,null,2)],{type:"application/json"});
+  const a    = document.createElement("a");
+  a.href     = URL.createObjectURL(blob);
+  a.download = `tracker-${today}.json`;
+  a.click();
+  toast("💾 Сохранено!");
+}
+function importData(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try { allData=JSON.parse(ev.target.result); save(); renderAll(); toast("✅ Данные загружены!"); }
+    catch { toast("Ошибка файла"); }
+  };
+  reader.readAsText(file);
+}
+
+// ── TOAST ───────────────────────────────────────────
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.style.display="block";
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=>el.style.display="none", 2300);
+}
+</script>
+
+<!-- PWA Service Worker -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
